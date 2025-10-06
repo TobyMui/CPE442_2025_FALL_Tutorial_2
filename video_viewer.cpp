@@ -12,14 +12,26 @@ int main(int argc, char** argv) {
     const std::string kWin = "Grayscale Video";
 
     cv::VideoCapture cap(argv[1]);
+
     if (!cap.isOpened()) {
         std::cerr << "Error: Could not open video file." << std::endl;
         return -1;
     }
 
     cv::namedWindow(kWin, cv::WINDOW_AUTOSIZE);
-
     cv::Mat frame, gray;
+
+    // Declare Sobel Kernels (X and Y)
+    cv::Mat sobelX = (cv::Mat_<float>(3,3) <<
+        -1, 0, 1,
+        -2, 0, 2,
+        -1, 0, 1);
+
+    cv::Mat sobelY = (cv::Mat_<float>(3,3) <<
+        -1, -2, -1,
+         0,  0,  0,
+         1,  2,  1);
+
     while (true) {
         if (!cap.read(frame) || frame.empty()) {
             std::cout << "End of video." << std::endl;
@@ -35,17 +47,30 @@ int main(int argc, char** argv) {
                 uchar G = color[1];
                 uchar R = color[2];
 
-                // CCIR 601 formula
-                uchar Y = static_cast<uchar>(
-                    0.299 * R + 0.587 * G + 0.114 * B
-                );
-
+                uchar Y = static_cast<uchar>(0.299 * R + 0.587 * G + 0.114 * B);
                 gray.at<uchar>(y, x) = Y;
             }
         }
 
-        // Show grayscale video
+        //Apply convultion kernels 
+        cv::Mat gx32f, gy32f;
+        cv::filter2D(gray, gx32f, CV_32F, sobelX);
+        cv::filter2D(gray, gy32f, CV_32F, sobelY);
+
+        // Calculate the Magnitude 
+        cv::Mat mag32f;
+        cv::magnitude(gx32f, gy32f, mag32f);
+
+        // Convert for display
+        cv::Mat gx8u, gy8u, mag8u;
+        cv::convertScaleAbs(gx32f, gx8u);                 // |Gx|
+        cv::convertScaleAbs(gy32f, gy8u);                 // |Gy|
+        cv::normalize(mag32f, mag32f, 0, 255, cv::NORM_MINMAX);
+        mag32f.convertTo(mag8u, CV_8U);
+
+        // Show windows
         cv::imshow(kWin, gray);
+        cv::imshow("Sobel Filter", mag8u);
 
         // Handle keys and window events
         int key = cv::waitKey(25);

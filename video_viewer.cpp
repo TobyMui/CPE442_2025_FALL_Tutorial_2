@@ -1,6 +1,45 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
+
+ // Declare Sobel Kernels (X and Y)
+ cv::Mat sobelX = (cv::Mat_<float>(3,3) <<
+ -1, 0, 1,
+ -2, 0, 2,
+ -1, 0, 1);
+
+cv::Mat sobelY = (cv::Mat_<float>(3,3) <<
+ -1, -2, -1,
+  0,  0,  0,
+  1,  2,  1);
+
+//Magical Boogaloo that does crazy linear algebruh 
+cv::Mat convolution(const cv::Mat& gray, const cv::Mat& kernel){
+    CV_Assert(gray.channels() == 1);
+    cv::Mat result(gray.rows, gray.cols, CV_32F, cv::Scalar(0));
+
+    //Offset 
+    int offset = 1; 
+
+    //Double for loop for traversing the 2d Matrix
+    for (int y = offset; y < gray.rows - offset; y++){
+        for(int x = offset; x < gray.cols - offset; x++){
+            float sum = 0.0f;
+
+            //Apply the kernel 
+            for(int ky = 0; ky <= 2; ky++){
+                for(int kx = 0; kx <= 2; kx++){
+                    float pixel = static_cast<float>(gray.at<uchar>(y + ky, x + kx));
+                    float weight = kernel.at<float>(ky, kx); 
+                    sum += pixel * weight; 
+                }
+            }
+            result.at<float>(y,x) = sum; 
+        }
+    }
+    return result;
+}
+
 int main(int argc, char** argv) {
     std::cout << "Press esc or q to close the window! \n";
 
@@ -20,17 +59,6 @@ int main(int argc, char** argv) {
 
     cv::namedWindow(kWin, cv::WINDOW_AUTOSIZE);
     cv::Mat frame, gray;
-
-    // Declare Sobel Kernels (X and Y)
-    cv::Mat sobelX = (cv::Mat_<float>(3,3) <<
-        -1, 0, 1,
-        -2, 0, 2,
-        -1, 0, 1);
-
-    cv::Mat sobelY = (cv::Mat_<float>(3,3) <<
-        -1, -2, -1,
-         0,  0,  0,
-         1,  2,  1);
 
     while (true) {
         if (!cap.read(frame) || frame.empty()) {
@@ -52,10 +80,12 @@ int main(int argc, char** argv) {
             }
         }
 
-        //Apply convultion kernels 
+        //Initialize X and Y output matrices
         cv::Mat gx32f, gy32f;
-        cv::filter2D(gray, gx32f, CV_32F, sobelX);
-        cv::filter2D(gray, gy32f, CV_32F, sobelY);
+
+        //Apply the respective kernels to X and Y output matrices
+        gx32f = convolution(gray,sobelX);
+        gy32f = convolution(gray,sobelY);
 
         // Calculate the Magnitude 
         cv::Mat mag32f;

@@ -16,8 +16,8 @@ CXXSTD ?= -std=c++17
 
 # Linker & compiler flags
 LDFLAGS  ?=
-CFLAGS   ?= -O2 -Wall -Wextra
-CXXFLAGS ?= -O2 -Wall -Wextra
+CFLAGS   ?= -O0 -Wall -Wextra
+CXXFLAGS ?= -O0 -Wall -Wextra
 
 # Add OpenCV flags (no-op if pkg-config can't find it)
 CXXFLAGS += $(CXXSTD) $(shell pkg-config --cflags $(OPENCV_PKG))
